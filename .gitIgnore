@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Compiled Output
+dist/
+
+# Environment Variables (SANGAT PENTING AGAR PASSWORD DB AMAN)
+.env
