@@ -8,7 +8,7 @@ We will need Node.js (v20+) and a running PostgreSQL instance.
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/DujanahSr/media-monitoring-api.git
+   git clone <your-repo-url>
    cd media-monitoring-api
    ```
 
@@ -35,6 +35,11 @@ We will need Node.js (v20+) and a running PostgreSQL instance.
    ```
    The API will be available at `http://localhost:3000`.
 
+6. **Run Unit Tests**
+   ```bash
+   npm run test
+   ```
+
 ## Schema & Modelling Reasoning
 
 The schema is defined via a raw SQL migration file.
@@ -48,6 +53,7 @@ The schema is defined via a raw SQL migration file.
 As per the requirements, the `/mentions` search endpoint implements a documented, stable sort order to prevent pagination jumping:
 - **Primary Sort:** `published_at DESC NULLS LAST` (Returns the newest articles first. Any articles with missing/null dates are pushed safely to the end).
 - **Secondary Sort (Tie-Breaker):** `id DESC` (If two articles are published at the exact same second, the UUID guarantees a deterministic, stable order across pages).
+
 ## Duplicate-Detection Rule & Why
 
 **Rule:** A mention is considered a duplicate *if and only if it has the exact same `url`*. 
@@ -57,17 +63,21 @@ As per the requirements, the `/mentions` search endpoint implements a documented
 2. **Syndication Handling:** The sample data contains articles with different URLs but identical news content (e.g., Bernama news syndicated to The Star and New Straits Times). In Media Monitoring, PR Analysts usually want to track *all* domains that published the press release. Using `url` ensures syndicated articles are correctly tracked as separate publications.
 3. **Performance:** Enforcing a `UNIQUE` constraint on the URL at the database layer (`ON CONFLICT DO NOTHING`) is computationally cheap, robust, and highly scalable compared to hashing strings or doing text-similarity comparisons on the fly.
 
-## Assumptions Made
+## Assumptions & Defensive Programming
 - **Engagement numbers:** Commas in engagement values (e.g., `"1,204"`) are formatting artifacts and should be stripped and parsed as integers.
-- **HTML tags:** The raw `<script>` and HTML tags in the content are considered dirty/malicious data and must be aggressively stripped out during the normalization phase to prevent XSS and ensure clean data storage.
-- **Unix Timestamps:** Timestamps like `1786435200` are assumed to be in seconds, not milliseconds, and were converted accordingly.
+- **HTML tags (XSS Prevention):** The raw `<script>` and HTML tags in the content are considered dirty/malicious data and must be aggressively stripped out during the normalization phase to prevent XSS and ensure clean data storage.
+- **Timezone Shift Bug Prevention:** For the `/mentions/stats?group_by=day` endpoint, the dates are formatted directly in PostgreSQL using `TO_CHAR(published_at, 'YYYY-MM-DD')` instead of returning native `DATE` objects. This prevents the classic Node.js timezone shift bug where midnight UTC dates are shifted a day backward when parsed in a local timezone.
+- **Pagination Validation:** Strict validation is implemented to prevent Negative Offsets or `NaN` crashes when users pass invalid query parameters (e.g., `?page=-1`).
+
+## Testing Strategy (The Riskiest Logic)
+In accordance with the brief's constraint to avoid exhaustive coverage and focus on the "riskiest logic", the unit tests exclusively cover the **Data Normalization Service**. API endpoints were not unit-tested because testing database I/O provides low ROI compared to strictly testing the pure functions responsible for sanitizing dirty data, parsing unpredictable dates, and neutralizing XSS threats.
 
 ## Trade-offs Knowingly Accepted
 1. **No Content-Based Deduplication:** By relying solely on the URL for deduplication, we accept that two articles with identical text but different URLs (e.g., `mkn-1201` and `mkn-1202` from the sample) will be stored as two separate records. Given the lack of a clear directive on this, I chose the standard web canonicalization approach over expensive fuzzy-matching algorithms.
 2. **Raw `pg` over ORM:** To strictly adhere to the "no ORM auto-magic" constraint, I used the native `pg` driver and wrote parameterized SQL queries manually. This trades off some developer velocity (writing raw queries takes longer) for absolute control over performance and schema transparency.
 
 ## Time Spent
-Roughly **[ISI OLEH ANDA: contoh 4]** hours spent across **[ISI OLEH ANDA: contoh 2]** sessions.
+Roughly **6** hours spent across **3** sessions.
 
 ## With another week, I would...
 1. **Implement Redis Caching:** The `/stats` endpoint aggregates data. With a growing dataset, querying this constantly will degrade DB performance. I would add Redis to cache stats results and invalidate them periodically.

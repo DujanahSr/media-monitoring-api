@@ -1,5 +1,5 @@
 // src/types/mention.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 // Zod Schema untuk memvalidasi JSON mentah yang masuk dari endpoint
 export const RawMentionSchema = z.object({
@@ -10,7 +10,7 @@ export const RawMentionSchema = z.object({
   url: z.string().url(),
   author: z.string().nullable().optional(),
   published_at: z.any().nullable().optional(), // Karena format tanggal berantakan, kita terima apa saja dulu
-  engagement: z.any().nullable().optional()    // Bisa angka murni atau string ("1,204")
+  engagement: z.any().nullable().optional(), // Bisa angka murni atau string ("1,204")
 });
 
 // Tipe TS otomatis dari Zod (untuk data kotor)

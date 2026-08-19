@@ -1,14 +1,14 @@
 // src/routes/search.ts
-import { Router, Request, Response } from 'express';
-import pool from '../db/pool';
+import { Router, Request, Response } from "express";
+import pool from "../db/pool";
 
 const router = Router();
 
 // GET /mentions
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { q, source, from, to, page = '1', limit = '10' } = req.query;
-    
+    const { q, source, from, to, page = "1", limit = "10" } = req.query;
+
     // PERBAIKAN 1: Defensive Programming untuk Paginasi
     let pageNum = parseInt(page as string, 10);
     let limitNum = parseInt(limit as string, 10);
@@ -16,7 +16,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     // Mencegah error jika user memasukkan huruf (?page=abc) atau angka negatif
     if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
     if (isNaN(limitNum) || limitNum < 1) limitNum = 10;
-    
+
     // Mencegah server overload jika user meminta jutaan data
     if (limitNum > 100) limitNum = 100;
 
@@ -28,7 +28,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     let paramIndex = 1;
 
     if (q) {
-      conditions.push(`(title ILIKE $${paramIndex} OR content ILIKE $${paramIndex})`);
+      conditions.push(
+        `(title ILIKE $${paramIndex} OR content ILIKE $${paramIndex})`,
+      );
       values.push(`%${q}%`);
       paramIndex++;
     }
@@ -43,8 +45,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     if (from) {
       const fromDate = new Date(from as string);
       if (isNaN(fromDate.getTime())) {
-         res.status(400).json({ error: "Format parameter 'from' bukan tanggal yang valid" });
-         return; // Hentikan eksekusi, jangan kirim ke DB
+        res
+          .status(400)
+          .json({ error: "Format parameter 'from' bukan tanggal yang valid" });
+        return; // Hentikan eksekusi, jangan kirim ke DB
       }
       conditions.push(`published_at >= $${paramIndex}`);
       values.push(fromDate.toISOString());
@@ -54,15 +58,18 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     if (to) {
       const toDate = new Date(to as string);
       if (isNaN(toDate.getTime())) {
-         res.status(400).json({ error: "Format parameter 'to' bukan tanggal yang valid" });
-         return;
+        res
+          .status(400)
+          .json({ error: "Format parameter 'to' bukan tanggal yang valid" });
+        return;
       }
       conditions.push(`published_at <= $${paramIndex}`);
       values.push(toDate.toISOString());
       paramIndex++;
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const query = `
       SELECT * FROM mentions
@@ -70,7 +77,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       ORDER BY published_at DESC NULLS LAST, id DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     values.push(limitNum, offset);
 
     const countQuery = `SELECT COUNT(*) FROM mentions ${whereClause}`;
@@ -78,7 +85,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
     const [dataResult, countResult] = await Promise.all([
       pool.query(query, values),
-      pool.query(countQuery, countValues)
+      pool.query(countQuery, countValues),
     ]);
 
     const totalRecords = parseInt(countResult.rows[0].count, 10);
@@ -88,13 +95,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
         page: pageNum,
         limit: limitNum,
         total_records: totalRecords,
-        total_pages: Math.ceil(totalRecords / limitNum)
+        total_pages: Math.ceil(totalRecords / limitNum),
       },
-      data: dataResult.rows
+      data: dataResult.rows,
     });
   } catch (error) {
-    console.error('Error saat melakukan pencarian:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error saat melakukan pencarian:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
