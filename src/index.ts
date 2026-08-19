@@ -38,5 +38,5 @@ app.get('/health', (req, res) => {
 
 // Menyalakan server
 app.listen(PORT, () => {
-  console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+  console.log(`[server]: API listening on port ${PORT}`);
 });
