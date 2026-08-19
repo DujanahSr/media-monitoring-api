@@ -8,7 +8,7 @@ We will need Node.js (v20+) and a running PostgreSQL instance.
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/DujanahSr/media-monitoring-api.git
    cd media-monitoring-api
    ```
 
@@ -43,6 +43,11 @@ The schema is defined via a raw SQL migration file.
 - **`published_at (TIMESTAMPTZ)`**: Stored as a timezone-aware timestamp to handle various input formats uniformly.
 - **Indexes**: Added indexes on `source` and `published_at` to optimize the search and stats aggregation queries.
 
+## Search & Pagination (Stable Sort Order)
+
+As per the requirements, the `/mentions` search endpoint implements a documented, stable sort order to prevent pagination jumping:
+- **Primary Sort:** `published_at DESC NULLS LAST` (Returns the newest articles first. Any articles with missing/null dates are pushed safely to the end).
+- **Secondary Sort (Tie-Breaker):** `id DESC` (If two articles are published at the exact same second, the UUID guarantees a deterministic, stable order across pages).
 ## Duplicate-Detection Rule & Why
 
 **Rule:** A mention is considered a duplicate *if and only if it has the exact same `url`*. 

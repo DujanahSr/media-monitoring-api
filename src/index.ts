@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import ingestRouter from './routes/ingest';
+import searchRouter from './routes/search';
 
 // Baca file .env
 dotenv.config();
@@ -18,6 +19,8 @@ app.use(express.json({ limit: '10mb' }));
 
 // Mendaftarkan Router/Endpoint yang baru saja kita buat
 app.use('/internal/mentions', ingestRouter);
+
+app.use('/mentions', searchRouter);
 
 // Endpoint Health Check (opsional, tapi disukai penguji)
 app.get('/health', (req, res) => {
