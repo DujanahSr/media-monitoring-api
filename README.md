@@ -43,6 +43,18 @@ npm run dev
 
 A simple, read-only UI is available at `http://localhost:3000` to view the `/stats` endpoint charts. No frontend framework is used (vanilla HTML/JS + Chart.js).
 
+## API Endpoints
+
+1. **`POST /internal/mentions/bulk`**
+   - **Description**: Bulk ingest an array of raw mention objects.
+   - **Idempotency**: Uses the `url` field to silently ignore duplicates.
+2. **`GET /mentions`**
+   - **Description**: Search and paginate mentions.
+   - **Query Params**: `q` (search title/content), `source` (exact match), `from`/`to` (ISO dates), `page`, `limit`.
+3. **`GET /mentions/stats`**
+   - **Description**: Aggregate mentions.
+   - **Query Params**: `group_by=source` or `group_by=day`.
+
 ## Schema & Modelling Reasoning
 
 The schema is defined in `migrations/001_init.sql`.
