@@ -9,20 +9,18 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const { q, source, from, to, page = "1", limit = "10" } = req.query;
 
-    // PERBAIKAN 1: Defensive Programming untuk Paginasi
     let pageNum = parseInt(page as string, 10);
     let limitNum = parseInt(limit as string, 10);
 
-    // Mencegah error jika user memasukkan huruf (?page=abc) atau angka negatif
+    // Fallback to defaults to prevent NaN crashes from invalid inputs
     if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
     if (isNaN(limitNum) || limitNum < 1) limitNum = 10;
 
-    // Mencegah server overload jika user meminta jutaan data
+    // Cap limit to 100 to prevent database exhaustion
     if (limitNum > 100) limitNum = 100;
 
     const offset = (pageNum - 1) * limitNum;
 
-    // Membangun Query Parameterized
     const conditions: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -41,14 +39,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       paramIndex++;
     }
 
-    // PERBAIKAN 2: Validasi Tanggal Elegan (Mencegah DB Crash)
     if (from) {
       const fromDate = new Date(from as string);
       if (isNaN(fromDate.getTime())) {
-        res
-          .status(400)
-          .json({ error: "Format parameter 'from' bukan tanggal yang valid" });
-        return; // Hentikan eksekusi, jangan kirim ke DB
+        res.status(400).json({ error: "Invalid 'from' date format" });
+        return;
       }
       conditions.push(`published_at >= $${paramIndex}`);
       values.push(fromDate.toISOString());
@@ -58,9 +53,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     if (to) {
       const toDate = new Date(to as string);
       if (isNaN(toDate.getTime())) {
-        res
-          .status(400)
-          .json({ error: "Format parameter 'to' bukan tanggal yang valid" });
+        res.status(400).json({ error: "Invalid 'to' date format" });
         return;
       }
       conditions.push(`published_at <= $${paramIndex}`);

@@ -9,10 +9,9 @@ router.get("/stats", async (req: Request, res: Response): Promise<void> => {
   try {
     const { group_by } = req.query;
 
-    // Defensive Programming: Tolak request jika parameternya ngawur
     if (group_by !== "source" && group_by !== "day") {
       res.status(400).json({
-        error: "Parameter 'group_by' wajib diisi dengan 'source' atau 'day'",
+        error: "Parameter 'group_by' must be 'source' or 'day'",
       });
       return;
     }
@@ -20,8 +19,6 @@ router.get("/stats", async (req: Request, res: Response): Promise<void> => {
     let query = "";
 
     if (group_by === "source") {
-      // Skenario 1: Grup berdasarkan Sumber (Source)
-      // Diurutkan dari media yang paling banyak membuat artikel ke yang paling sedikit
       query = `
         SELECT source as category, COUNT(*)::INTEGER as count 
         FROM mentions 
@@ -29,9 +26,8 @@ router.get("/stats", async (req: Request, res: Response): Promise<void> => {
         ORDER BY count DESC
       `;
     } else if (group_by === "day") {
-      // Skenario 2: Grup berdasarkan Hari (Day)
-      // PERBAIKAN: Menggunakan TO_CHAR agar PostgreSQL mengirim string murni 'YYYY-MM-DD'
-      // Ini mencegah bug Timezone Shift (hari mundur 1 hari) saat di-parsing oleh Node.js
+      // Use TO_CHAR to format directly in PostgreSQL.
+      // This prevents the node-postgres timezone shift bug when parsing dates.
       query = `
         SELECT TO_CHAR(published_at, 'YYYY-MM-DD') as category, COUNT(*)::INTEGER as count 
         FROM mentions 
@@ -41,10 +37,8 @@ router.get("/stats", async (req: Request, res: Response): Promise<void> => {
       `;
     }
 
-    // Eksekusi query
     const dbResult = await pool.query(query);
 
-    // Kembalikan format JSON yang mudah dibaca oleh pembuat Grafik Frontend (Chart.js / Recharts)
     res.json({
       group_by,
       data: dbResult.rows,
