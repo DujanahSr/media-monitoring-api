@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import ingestRouter from './routes/ingest';
 import searchRouter from './routes/search';
 import statsRouter from './routes/stats';
+import path from 'path';
 
 // Baca file .env
 dotenv.config();
@@ -14,6 +15,10 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
+
+// Membaca folder public untuk memunculkan Dashboard HTML kita!
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Pakai express.json() agar aplikasi bisa membaca JSON dari req.body
 // Limit kita atur ke 10mb berjaga-jaga jika seed_mentions.json ukurannya cukup besar
 app.use(express.json({ limit: '10mb' })); 
@@ -23,6 +28,8 @@ app.use('/internal/mentions', ingestRouter);
 
 app.use('/mentions', searchRouter);
 app.use('/mentions', statsRouter);
+
+
 
 // Endpoint Health Check (opsional, tapi disukai penguji)
 app.get('/health', (req, res) => {

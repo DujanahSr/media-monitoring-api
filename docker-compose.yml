@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: media_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: media123
+      POSTGRES_DB: media_monitoring
+    ports:
+      - "5433:5432"
+    volumes:
+      # MAGIC TRICK: File SQL kita akan otomatis dieksekusi oleh Docker saat database pertama kali nyala!
+      - ./migrations:/docker-entrypoint-initdb.d

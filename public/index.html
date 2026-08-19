@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Mentions Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #fafafa; color: #333; padding: 2rem; margin: 0; }
+        h1 { font-size: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid #eaeaea; padding-bottom: 1rem; display: flex; align-items: center; gap: 10px; }
+        .container { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .chart-box { background: #fff; flex: 1; min-width: 300px; padding: 1.5rem; border: 1px solid #eaeaea; border-radius: 6px; }
+        h3 { font-size: 1rem; color: #666; margin-top: 0; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px; }
+        svg { width: 20px; height: 20px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <h1>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        Mentions Overview
+    </h1>
+    
+    <div class="container">
+        <div class="chart-box">
+            <h3>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                By Source
+            </h3>
+            <canvas id="sourceChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h3>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                By Day
+            </h3>
+            <canvas id="dayChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        async function init() {
+            try {
+                const [sourceRes, dayRes] = await Promise.all([
+                    fetch('/mentions/stats?group_by=source'),
+                    fetch('/mentions/stats?group_by=day')
+                ]);
+
+                const sourceData = await sourceRes.json();
+                const dayData = await dayRes.json();
+
+                new Chart(document.getElementById('sourceChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: sourceData.data.map(d => d.category),
+                        datasets: [{ 
+                            data: sourceData.data.map(d => d.count), 
+                            backgroundColor: ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6'] 
+                        }]
+                    }
+                });
+
+                new Chart(document.getElementById('dayChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: dayData.data.map(d => d.category),
+                        datasets: [{ 
+                            label: 'Mentions', 
+                            data: dayData.data.map(d => d.count), 
+                            backgroundColor: '#3b82f6' 
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
+            } catch (err) {
+                console.error("Failed to load charts:", err);
+            }
+        }
+        init();
+    </script>
+</body>
+</html>
